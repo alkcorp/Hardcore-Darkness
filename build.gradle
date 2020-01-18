@@ -1,69 +1,95 @@
-
-// For those who want the bleeding edge
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
+		jcenter()	
+        //maven {
+        //    name = "forge"
+        //    url = "http://files.minecraftforge.net/maven"
+        //}
+		maven {
+			name = "gt"
+			url = "https://gregtech.overminddl1.com/"
+		}	
         maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
+            name = "sonatype"
+            url = "https://oss.sonatype.org/content/repositories/snapshots/"
         }
+		maven {
+			url = "https://plugins.gradle.org/m2/"
+		}
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath "net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT"
     }
 }
-apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = "1.9"
+// Because Forge is too stupid to fix Deprecation Issues, and we cannot fix it on our end! (until we fork Forge)
+allprojects {
+	tasks.withType(Javadoc) {
+		//options.compilerArgs << "-Xlint:deprecation"
+		options.addStringOption('Xdoclint:none', '-quiet')
+	}
+}
+
+apply plugin: 'eclipse'
+eclipse {
+	classpath {
+		downloadJavadoc = true
+		downloadSources = true
+	}
+}
+
+apply plugin: 'idea'
+idea{
+	module {
+		downloadJavadoc = true
+		downloadSources = true
+	}
+}
+
+apply plugin: 'forge'
+
+version = "1.0"
 group= "lumien.hardcoredarkness" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "HardcoreDarkness"
 
-sourceCompatibility = targetCompatibility = "1.6" // Need this here so eclipse task generates correctly.
-compileJava {
-    sourceCompatibility = targetCompatibility = "1.6"
-}
+//Java Version
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
-jar {
-    manifest {
-        attributes("FMLCorePluginContainsFMLMod": "true", "FMLCorePlugin": "lumien.hardcoredarkness.asm.LoadingPlugin")
-    }
-}
+//Compile against UTF-8
+compileTestJava.options.encoding = 'UTF-8'
+javadoc.options.encoding = 'UTF-8'
+compileJava.options.encoding = 'UTF-8'
 
 minecraft {
-    version = "1.12.1-14.22.0.2459"
+    version = "1.7.10-10.13.4.1614-1.7.10"
     runDir = "eclipse"
-    
-    replaceIn "HardcoreDarkness.java"
-    replace "@VERSION@",project.version
-    
-    // the mappings can be changed at any time, and must be in the following format.
-    // snapshot_YYYYMMDD   snapshot are built nightly.
-    // stable_#            stables are built at the discretion of the MCP team.
-    // Use non-default mappings at your own risk. they may not allways work.
-    // simply re-run your setup task after changing the mappings to update your workspace.
-    mappings = "snapshot_20161220"
 }
 
-jar {
-    manifest {
-        attributes("FMLAT": "HardcoreDarkness_At.cfg")
+idea { module { inheritOutputDirs = true } }
+
+configurations {
+    provided
+    embedded
+    compile.extendsFrom provided, embedded
+}
+
+repositories {
+	maven {
+		name = "gt"
+		url = "http://gregtech.overminddl1.com/"
+	}
+}
+
+sourceSets {
+    main {
+        java { srcDirs = ["$projectDir/src/main/java"] }
+        resources { srcDirs = ["$projectDir/src/main/resources"] }
     }
 }
 
-archivesBaseName = "HardcoreDarkness-MC" + minecraft.version
-
-dependencies {
-    // you may put jars on which you depend on in ./libs
-    // or you may define them like so..
-    //compile "some.group:artifact:version:classifier"
-    //compile "some.group:artifact:version"
-      
-    // real examples
-    //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
-    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
-
-    // for more info...
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+dependencies {	
 
 }
 
@@ -85,4 +111,33 @@ processResources
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
+	exclude '**/Thumbs.db'
+}
+
+jar {
+    archiveName = archivesBaseName + "-" + version + ".jar"
+    manifest {
+
+    }
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+    manifest {
+
+    }
+}
+
+task devJar(type: Jar) {
+    from sourceSets.main.output
+    classifier = 'dev'
+    manifest {
+
+    }
+}
+
+artifacts {
+    archives devJar
+	archives sourceJar
 }
